@@ -1,24 +1,41 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.*;
 
+/**
+ * Implements Dijkstra's algorithm for finding the shortest path in terms of edge weights.
+ * @param <V> The type of data stored in the graph vertices.
+ */
 public class DijkstraSearch<V> extends Search<V> {
-    private Map<Vertex<V>, Double> distTo = new HashMap<>();
-    private Map<Vertex<V>, Vertex<V>> edgeTo = new HashMap<>();
-    private PriorityQueue<Vertex<V>> pq;
+    private final Map<Vertex<V>, Double> distTo = new HashMap<>();
+    private final Map<Vertex<V>, Vertex<V>> edgeTo = new HashMap<>();
+    private final PriorityQueue<Vertex<V>> pq;
 
+    /**
+     * Initializes Dijkstra's algorithm with the graph and starting vertex.
+     * @param graph The graph to search.
+     * @param start The starting vertex.
+     */
     public DijkstraSearch(WeightedGraph<V> graph, Vertex<V> start) {
         super(graph, start);
+        pq = new PriorityQueue<>(Comparator.comparingDouble(distTo::get));
+        initializeDistances();
+        pq.add(start);
+        computeShortestPaths();
+    }
+
+    /**
+     * Initializes all distances to infinity except the start vertex.
+     */
+    private void initializeDistances() {
         for (Vertex<V> v : graph.getMap().keySet()) {
             distTo.put(v, Double.POSITIVE_INFINITY);
         }
         distTo.put(start, 0.0);
-        pq = new PriorityQueue<>(Comparator.comparingDouble(distTo::get));
-        pq.add(start);
+    }
+
+    /**
+     * Computes shortest paths using a priority queue.
+     */
+    private void computeShortestPaths() {
         while (!pq.isEmpty()) {
             Vertex<V> current = pq.poll();
             for (Vertex<V> neighbor : current.getAdjacentVertices().keySet()) {
@@ -27,16 +44,35 @@ public class DijkstraSearch<V> extends Search<V> {
         }
     }
 
+    /**
+     * Relaxes an edge, updating the shortest path if a shorter path is found.
+     * @param from The source vertex.
+     * @param to The destination vertex.
+     */
     private void relax(Vertex<V> from, Vertex<V> to) {
         double weight = from.getAdjacentVertices().get(to);
-        if (distTo.get(to) > distTo.get(from) + weight) {
-            distTo.put(to, distTo.get(from) + weight);
+        double newDist = distTo.get(from) + weight;
+        if (newDist < distTo.get(to)) {
+            distTo.put(to, newDist);
             edgeTo.put(to, from);
-            if (pq.contains(to)) pq.remove(to);
-            pq.add(to);
+            updatePriorityQueue(to);
         }
     }
 
+    /**
+     * Updates the priority queue when a vertex's distance changes.
+     * @param vertex The vertex to update.
+     */
+    private void updatePriorityQueue(Vertex<V> vertex) {
+        pq.remove(vertex);
+        pq.add(vertex);
+    }
+
+    /**
+     * Returns the path from the start vertex to the destination.
+     * @param destination The target vertex.
+     * @return List of vertices in the path.
+     */
     @Override
     public List<Vertex<V>> pathTo(Vertex<V> destination) {
         List<Vertex<V>> path = new ArrayList<>();
@@ -49,6 +85,11 @@ public class DijkstraSearch<V> extends Search<V> {
         return path;
     }
 
+    /**
+     * Returns the total weight of the shortest path.
+     * @param destination The target vertex.
+     * @return Total weight, or infinity if no path exists.
+     */
     public double getTotalWeight(Vertex<V> destination) {
         return distTo.getOrDefault(destination, Double.POSITIVE_INFINITY);
     }
